@@ -4,8 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,6 +20,17 @@ public class PrivateChatHandler extends ChannelInboundHandlerAdapter {
     private static final Map<String, Channel> userChannelMap = new ConcurrentHashMap<>();
     // 通道用户映射
     private static final Map<Channel, String> channelUserMap = new ConcurrentHashMap<>();
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent idleStateEvent) {
+            if (idleStateEvent.state() == IdleState.READER_IDLE) {
+                log.info("客户端长时间未发送数据");
+                log.info("关闭时间：{}", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+                closeChannel(ctx.channel());
+            }
+        }
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
